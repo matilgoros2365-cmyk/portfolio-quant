@@ -5,8 +5,8 @@ mínimos (capital, aporte, horizonte, perfil de riesgo, objetivo) y el
 sistema obtiene los datos de mercado/macro, calcula todo y recomienda
 carteras según el riesgo elegido.
 
-> **Estado:** Fase 1 (MVP) — cimientos: modelos de datos, ingesta,
-> cálculo de retornos/volatilidad/riesgo y API básica.
+> **Estado:** Backend completo (Fases 1 a 5) + frontend web con gráficos.
+> 81 tests en verde. Datos de mercado reales (Yahoo Finance + FRED).
 
 ## Plan por fases
 
@@ -31,7 +31,12 @@ Para poder correr en la máquina local desde el día uno:
 La capa de datos está abstraída, así que migrar a PostgreSQL más adelante
 no obliga a reescribir el código.
 
-## Cómo correr el backend
+## Cómo correr
+
+Necesitás **dos terminales**: una para el backend (API) y otra para el
+frontend (la web).
+
+### 1) Backend (API)
 
 ```bash
 cd backend
@@ -45,11 +50,26 @@ pip install -r requirements.txt
 
 # Levantar la API:
 uvicorn app.main:app --reload
-# -> http://127.0.0.1:8000/health   y   /docs (Swagger)
+# -> http://127.0.0.1:8000/docs (Swagger)
 
 # Correr los tests:
 pytest
 ```
+
+Necesitás un archivo `backend/.env` con tu `FRED_API_KEY`
+(gratis en https://fredaccount.stlouisfed.org/apikeys). Copiá `.env.example`.
+
+### 2) Frontend (la web)
+
+```bash
+cd frontend
+npm install
+npm run dev
+# -> http://localhost:3000
+```
+
+Abrí http://localhost:3000, cargá tus datos y presioná
+"Analizar y recomendar".
 
 ## Estructura
 
