@@ -31,5 +31,11 @@ class Settings(BaseSettings):
     # Se obtiene en: https://fredaccount.stlouisfed.org/apikeys
     fred_api_key: str | None = None
 
+    # --- CORS (orígenes permitidos para el frontend) ---
+    cors_origins: list[str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
+
 
 settings = Settings()

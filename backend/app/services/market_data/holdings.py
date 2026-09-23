@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.fund_holding import FundHolding
@@ -37,7 +38,11 @@ class FundHoldingsService:
         ]
         if rows:
             self.db.add_all(rows)
-            self.db.commit()
+            try:
+                self.db.commit()
+            except IntegrityError:
+                self.db.rollback()
+                return 0
         return len(rows)
 
     def get_holdings(self, fund_symbol: str) -> dict[str, float]:

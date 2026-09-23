@@ -14,6 +14,7 @@ from datetime import date, timedelta
 
 import pandas as pd
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -62,7 +63,12 @@ class MarketDataEngine:
             sector=meta.sector,
         )
         self.db.add(asset)
-        self.db.commit()
+        try:
+            self.db.commit()
+        except IntegrityError:
+            # Otra petición concurrente ya creó el activo: reusarlo.
+            self.db.rollback()
+            return self.db.scalar(select(Asset).where(Asset.symbol == symbol))
         self.db.refresh(asset)
         return asset
 
@@ -117,7 +123,12 @@ class MarketDataEngine:
 
         if rows:
             self.db.add_all(rows)
-            self.db.commit()
+            try:
+                self.db.commit()
+            except IntegrityError:
+                # Otra petición concurrente ya insertó estas fechas.
+                self.db.rollback()
+                return 0
         return len(rows)
 
     def get_price_dataframe(self, symbol: str) -> pd.DataFrame:
@@ -186,7 +197,11 @@ class MarketDataEngine:
         ]
         if rows:
             self.db.add_all(rows)
-            self.db.commit()
+            try:
+                self.db.commit()
+            except IntegrityError:
+                self.db.rollback()
+                return 0
         return len(rows)
 
     def get_macro_dataframe(self, series_id: str) -> pd.DataFrame:

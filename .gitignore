@@ -16,13 +16,17 @@ env/
 
 # Base de datos local
 *.db
+*.db-wal
+*.db-shm
 *.sqlite3
 
-# Node / frontend (fase posterior)
+# Node / frontend
 node_modules/
 .next/
 dist/
 build/
+*.tsbuildinfo
+next-env.d.ts
 
 # Editores / SO
 .vscode/
