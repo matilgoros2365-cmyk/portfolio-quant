@@ -1,9 +1,21 @@
 """Motor cuantitativo: funciones puras, aisladas de DB/API."""
+from app.quant.concentration import (
+    concentration_summary,
+    effective_number_of_assets,
+    herfindahl_index,
+    look_through_exposures,
+    top_n_concentration,
+)
 from app.quant.correlation import (
     HIGH_CORRELATION_THRESHOLD,
     correlation_matrix,
     covariance_matrix,
     high_correlation_pairs,
+)
+from app.quant.overlap import (
+    coverage,
+    overlapping_holdings,
+    weight_overlap,
 )
 from app.quant.expected import (
     align_returns,
@@ -34,11 +46,16 @@ from app.quant.returns import (
 from app.quant.risk import (
     DrawdownInfo,
     calmar_ratio,
+    conditional_var_gaussian,
+    conditional_var_historical,
     drawdown_series,
     max_drawdown,
     max_drawdown_details,
+    risk_contribution,
     sharpe_ratio,
     sortino_ratio,
+    value_at_risk_gaussian,
+    value_at_risk_historical,
     wealth_index,
 )
 from app.quant.volatility import (
@@ -75,6 +92,22 @@ __all__ = [
     "sharpe_ratio",
     "sortino_ratio",
     "calmar_ratio",
+    # VaR / CVaR / contribución
+    "value_at_risk_historical",
+    "conditional_var_historical",
+    "value_at_risk_gaussian",
+    "conditional_var_gaussian",
+    "risk_contribution",
+    # concentración
+    "herfindahl_index",
+    "effective_number_of_assets",
+    "top_n_concentration",
+    "concentration_summary",
+    "look_through_exposures",
+    # overlap
+    "weight_overlap",
+    "overlapping_holdings",
+    "coverage",
     # expected returns
     "historical_expected_returns",
     "annualized_covariance",

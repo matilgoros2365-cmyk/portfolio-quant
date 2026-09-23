@@ -5,6 +5,7 @@ Importar todos los modelos aquí asegura que queden registrados en
 """
 from app.models.asset import Asset, AssetType
 from app.models.daily_price import DailyPrice
+from app.models.fund_holding import FundHolding
 from app.models.macro_series import MacroSeries
 from app.models.portfolio import Portfolio, RiskProfile
 
@@ -12,6 +13,7 @@ __all__ = [
     "Asset",
     "AssetType",
     "DailyPrice",
+    "FundHolding",
     "MacroSeries",
     "Portfolio",
     "RiskProfile",

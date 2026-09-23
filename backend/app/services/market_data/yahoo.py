@@ -92,3 +92,36 @@ class YahooFinanceProvider(PriceProvider):
             exchange=info.get("exchange"),
             sector=info.get("sector"),
         )
+
+    def get_fund_holdings(self, symbol: str) -> dict[str, dict]:
+        """Principales tenencias de un ETF/fondo.
+
+        Devuelve {símbolo: {"weight": fracción, "name": str|None}}.
+        Con datos gratuitos solo están las top-N; si el activo no es un
+        fondo o no hay datos, devuelve {} (no es un error).
+        """
+        ticker = yf.Ticker(symbol)
+        try:
+            funds = ticker.funds_data
+            top = funds.top_holdings
+        except Exception:  # noqa: BLE001 - puede no ser fondo / rate-limit
+            return {}
+
+        if top is None or len(top) == 0:
+            return {}
+
+        result: dict[str, dict] = {}
+        for holding_symbol, row in top.iterrows():
+            pct = row.get("Holding Percent")
+            if pct is None:
+                continue
+            try:
+                weight = float(pct)
+            except (TypeError, ValueError):
+                continue
+            name = row.get("Name")
+            result[str(holding_symbol).upper()] = {
+                "weight": weight,
+                "name": str(name) if name is not None else None,
+            }
+        return result

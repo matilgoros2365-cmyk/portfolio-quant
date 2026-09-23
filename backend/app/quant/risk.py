@@ -10,6 +10,7 @@ from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
+from scipy.stats import norm
 
 from app.quant.returns import TRADING_DAYS_PER_YEAR, annualized_return
 from app.quant.volatility import downside_deviation
@@ -138,3 +139,68 @@ def calmar_ratio(
         return float("nan")
     ann = annualized_return(returns, periods_per_year)
     return float(ann / abs(mdd))
+
+
+# --------------------------------------------------------- VaR / CVaR
+# Convención: VaR y CVaR se devuelven como pérdidas POSITIVAS en fracción.
+# Un VaR de 0.02 al 95% = "en el peor 5% de los días, se pierde >= 2%".
+
+def value_at_risk_historical(returns: pd.Series, confidence: float = 0.95) -> float:
+    """VaR histórico (no paramétrico) al nivel de confianza dado."""
+    r = returns.dropna()
+    if len(r) < 2:
+        return float("nan")
+    quantile = np.quantile(r.to_numpy(), 1.0 - confidence)
+    return float(max(-quantile, 0.0))
+
+
+def conditional_var_historical(returns: pd.Series, confidence: float = 0.95) -> float:
+    """CVaR / Expected Shortfall histórico: pérdida media más allá del VaR."""
+    r = returns.dropna()
+    if len(r) < 2:
+        return float("nan")
+    threshold = np.quantile(r.to_numpy(), 1.0 - confidence)
+    tail = r[r <= threshold]
+    if len(tail) == 0:
+        return float(max(-threshold, 0.0))
+    return float(max(-tail.mean(), 0.0))
+
+
+def value_at_risk_gaussian(returns: pd.Series, confidence: float = 0.95) -> float:
+    """VaR paramétrico (normal): -(mu + z_{1-c}·sigma)."""
+    r = returns.dropna()
+    if len(r) < 2:
+        return float("nan")
+    mu = float(r.mean())
+    sigma = float(r.std(ddof=1))
+    z = norm.ppf(1.0 - confidence)  # negativo
+    return float(max(-(mu + z * sigma), 0.0))
+
+
+def conditional_var_gaussian(returns: pd.Series, confidence: float = 0.95) -> float:
+    """CVaR paramétrico (normal): -(mu - sigma·phi(z)/(1-c))."""
+    r = returns.dropna()
+    if len(r) < 2:
+        return float("nan")
+    mu = float(r.mean())
+    sigma = float(r.std(ddof=1))
+    alpha = 1.0 - confidence
+    z = norm.ppf(alpha)
+    es = -(mu - sigma * norm.pdf(z) / alpha)
+    return float(max(es, 0.0))
+
+
+def risk_contribution(weights: np.ndarray, cov: np.ndarray) -> np.ndarray:
+    """Contribución porcentual de cada activo al riesgo total de la cartera.
+
+    CC_i = w_i · (Σw)_i / σ_p ; devuelto como fracción (suman 1).
+    Muestra qué activos concentran el riesgo, más allá de su peso.
+    """
+    w = np.asarray(weights, dtype=float)
+    cov = np.asarray(cov, dtype=float)
+    port_var = float(w @ cov @ w)
+    if port_var <= 0:
+        return np.full_like(w, np.nan)
+    marginal = cov @ w
+    component = w * marginal  # suma = varianza de la cartera
+    return component / port_var
