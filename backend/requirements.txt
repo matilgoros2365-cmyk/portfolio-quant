@@ -14,6 +14,10 @@ fredapi>=0.5
 pandas>=2.2
 numpy>=1.26
 
+# --- Optimización de carteras (Fase 2) ---
+cvxpy>=1.5
+scipy>=1.13
+
 # --- Testing ---
 pytest>=8.2
 httpx>=0.27
