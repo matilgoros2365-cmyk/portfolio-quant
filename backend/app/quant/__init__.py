@@ -29,11 +29,18 @@ from app.quant.overlap import (
     overlapping_holdings,
     weight_overlap,
 )
+from app.quant.black_litterman import (
+    black_litterman_returns,
+    implied_equilibrium_returns,
+    market_implied_risk_aversion,
+)
 from app.quant.expected import (
     align_returns,
     annualized_covariance,
     historical_expected_returns,
 )
+from app.quant.factors import FactorRegressionResult, factor_regression
+from app.quant.stability import StabilityResult, resampled_optimization
 from app.quant.optimization import (
     OptimizationError,
     efficient_frontier,
@@ -130,6 +137,16 @@ __all__ = [
     "HISTORICAL_CRISES",
     "window_return",
     "portfolio_scenario_return",
+    # factors
+    "factor_regression",
+    "FactorRegressionResult",
+    # black-litterman
+    "implied_equilibrium_returns",
+    "black_litterman_returns",
+    "market_implied_risk_aversion",
+    # stability
+    "resampled_optimization",
+    "StabilityResult",
     # expected returns
     "historical_expected_returns",
     "annualized_covariance",
