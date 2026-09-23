@@ -12,6 +12,18 @@ from app.quant.correlation import (
     covariance_matrix,
     high_correlation_pairs,
 )
+from app.quant.monte_carlo import (
+    simulate_bootstrap,
+    simulate_gaussian,
+    simulate_student_t,
+    summarize_terminal,
+    yearly_bands,
+)
+from app.quant.scenarios import (
+    HISTORICAL_CRISES,
+    portfolio_scenario_return,
+    window_return,
+)
 from app.quant.overlap import (
     coverage,
     overlapping_holdings,
@@ -108,6 +120,16 @@ __all__ = [
     "weight_overlap",
     "overlapping_holdings",
     "coverage",
+    # monte carlo
+    "simulate_gaussian",
+    "simulate_student_t",
+    "simulate_bootstrap",
+    "summarize_terminal",
+    "yearly_bands",
+    # scenarios
+    "HISTORICAL_CRISES",
+    "window_return",
+    "portfolio_scenario_return",
     # expected returns
     "historical_expected_returns",
     "annualized_covariance",
