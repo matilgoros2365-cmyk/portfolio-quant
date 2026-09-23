@@ -1,0 +1,19 @@
+# --- API ---
+fastapi>=0.115
+uvicorn[standard]>=0.30
+
+# --- Base de datos / validación ---
+sqlalchemy>=2.0
+pydantic>=2.7
+pydantic-settings>=2.3
+python-dotenv>=1.0
+
+# --- Datos de mercado / macro (se usan a fondo en la Tarea 2) ---
+yfinance>=0.2.40
+fredapi>=0.5
+pandas>=2.2
+numpy>=1.26
+
+# --- Testing ---
+pytest>=8.2
+httpx>=0.27
