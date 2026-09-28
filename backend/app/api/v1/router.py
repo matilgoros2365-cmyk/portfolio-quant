@@ -12,6 +12,7 @@ from app.api.v1.endpoints import (
     risk,
     robustness,
     simulate,
+    users,
 )
 
 api_router = APIRouter()
@@ -23,3 +24,4 @@ api_router.include_router(simulate.router, tags=["portfolio"])
 api_router.include_router(factors.router, tags=["portfolio"])
 api_router.include_router(robustness.router, tags=["portfolio"])
 api_router.include_router(analyses.router, tags=["analyses"])
+api_router.include_router(users.router, tags=["profiles"])
