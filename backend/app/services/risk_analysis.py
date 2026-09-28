@@ -37,9 +37,9 @@ from app.services.analysis import PortfolioAnalyzer
 from app.services.market_data.engine import MarketDataEngine
 from app.services.market_data.holdings import FundHoldingsService
 from app.services.optimizer import (
-    RISK_PROFILE_LEVELS,
     InsufficientDataError,
     PortfolioOptimizer,
+    resolve_risk_level,
 )
 
 
@@ -60,11 +60,13 @@ class RiskAnalyzer:
     def analyze(
         self,
         symbols: list[str],
-        risk_profile: RiskProfile,
+        risk_profile: RiskProfile | None = None,
         base_currency: str = "USD",
         confidence: float = 0.95,
         max_weight: float | None = None,
+        risk_level: float | None = None,
     ) -> RiskAnalysisResponse:
+        level, risk_profile = resolve_risk_level(risk_profile, risk_level)
         aligned, names, currencies = self.optimizer._load_aligned_returns(symbols)
         if len(aligned.columns) < 2:
             raise InsufficientDataError(
@@ -76,9 +78,7 @@ class RiskAnalyzer:
         cov = annualized_covariance(aligned).to_numpy()
         rf = PortfolioAnalyzer(self.db, engine=self.mde).get_risk_free_rate()
 
-        weights = portfolio_for_risk_level(
-            mu, cov, RISK_PROFILE_LEVELS[risk_profile], max_weight
-        )
+        weights = portfolio_for_risk_level(mu, cov, level, max_weight)
         weights_by_symbol = {s: float(w) for s, w in zip(ordered, weights)}
 
         # --- VaR / CVaR sobre los retornos diarios de la cartera ---

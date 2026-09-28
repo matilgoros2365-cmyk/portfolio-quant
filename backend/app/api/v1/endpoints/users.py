@@ -13,7 +13,10 @@ from app.schemas.profiling import (
     UserCreate,
     UserOut,
 )
+from app.schemas.recommendation import RecommendationResponse
+from app.services.optimizer import InsufficientDataError
 from app.services.profile_service import ProfileService, profile_to_dict
+from app.services.recommendation import RecommendationService
 
 router = APIRouter()
 
@@ -64,3 +67,22 @@ def preview_score(payload: AssessmentCreate) -> ProfileOut:
     """Calcula el perfil sin guardarlo (útil para previsualizar en vivo)."""
     result = score_profile(payload.answers)
     return ProfileOut(**profile_to_dict(result))
+
+
+@router.get("/users/{user_id}/recommendation", response_model=RecommendationResponse)
+def recommend(user_id: str, db: Session = Depends(get_db)) -> RecommendationResponse:
+    """Del perfil a la cartera: arma el universo y corre optimización + proyección."""
+    service = ProfileService(db)
+    if service.get_user(user_id) is None:
+        raise HTTPException(status_code=404, detail="Perfil no encontrado.")
+    assessment = service.current_assessment(user_id)
+    if assessment is None:
+        raise HTTPException(
+            status_code=422,
+            detail="Este perfil todavía no completó el cuestionario.",
+        )
+    try:
+        result = RecommendationService(db).recommend(user_id, assessment)
+    except InsufficientDataError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return RecommendationResponse(**result)

@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.models.asset import Asset
 from app.models.portfolio import RiskProfile
+from app.profiling.config import band_label
 from app.quant.expected import (
     align_returns,
     annualized_covariance,
@@ -70,6 +71,22 @@ def _clean(value: float) -> float | None:
         return None
     f = float(value)
     return None if (math.isnan(f) or math.isinf(f)) else f
+
+
+def resolve_risk_level(
+    risk_profile: RiskProfile | None = None, risk_level: float | None = None
+) -> tuple[float, RiskProfile]:
+    """Devuelve (nivel_continuo [0,1], perfil_enum).
+
+    Prioriza `risk_level` (viene del perfilado); si no, mapea el enum. El enum
+    resultante se deriva por bandas y sirve solo como etiqueta legible.
+    """
+    if risk_level is not None:
+        level = min(max(float(risk_level), 0.0), 1.0)
+        return level, RiskProfile(band_label(level))
+    if risk_profile is not None:
+        return RISK_PROFILE_LEVELS[risk_profile], risk_profile
+    raise InsufficientDataError("Falta indicar risk_profile o risk_level.")
 
 
 class PortfolioOptimizer:
@@ -138,10 +155,12 @@ class PortfolioOptimizer:
     def optimize(
         self,
         symbols: list[str],
-        risk_profile: RiskProfile,
+        risk_profile: RiskProfile | None = None,
         base_currency: str = "USD",
         max_weight: float | None = None,
+        risk_level: float | None = None,
     ) -> OptimizationResponse:
+        level, risk_profile = resolve_risk_level(risk_profile, risk_level)
         analyzer = PortfolioAnalyzer(self.db, engine=self.mde)
         rf = analyzer.get_risk_free_rate()
 
@@ -160,7 +179,6 @@ class PortfolioOptimizer:
         mu = historical_expected_returns(aligned).to_numpy()
         cov = annualized_covariance(aligned).to_numpy()
 
-        level = RISK_PROFILE_LEVELS[risk_profile]
         recommended_w = portfolio_for_risk_level(mu, cov, level, max_weight)
         recommended = self._make_portfolio(
             f"risk_profile:{risk_profile.value}",

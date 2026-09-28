@@ -14,10 +14,12 @@ def save_analysis(
     risk_profile: str | None = None,
     base_currency: str | None = None,
     label: str | None = None,
+    user_id: str | None = None,
 ) -> int:
     """Persiste un análisis completo y devuelve su id."""
     run = AnalysisRun(
         kind=kind,
+        user_id=user_id,
         risk_profile=risk_profile,
         base_currency=base_currency,
         label=label,

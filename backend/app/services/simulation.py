@@ -26,9 +26,9 @@ from app.schemas.simulation import (
 from app.services.analysis import PortfolioAnalyzer
 from app.services.market_data.engine import MarketDataEngine
 from app.services.optimizer import (
-    RISK_PROFILE_LEVELS,
     InsufficientDataError,
     PortfolioOptimizer,
+    resolve_risk_level,
 )
 
 # Cobertura mínima para reportar una crisis (evita números engañosos por
@@ -45,18 +45,20 @@ class SimulationService:
     def simulate(
         self,
         symbols: list[str],
-        risk_profile: RiskProfile,
-        initial_capital: float,
-        monthly_contribution: float,
-        years: int,
-        target_wealth: float | None,
+        risk_profile: RiskProfile | None = None,
+        initial_capital: float = 0.0,
+        monthly_contribution: float = 0.0,
+        years: int = 10,
+        target_wealth: float | None = None,
         method: str = "gaussian",
         n_simulations: int = 10_000,
         student_t_df: int = 5,
         base_currency: str = "USD",
         max_weight: float | None = None,
         seed: int | None = None,
+        risk_level: float | None = None,
     ) -> SimulationResponse:
+        level, risk_profile = resolve_risk_level(risk_profile, risk_level)
         aligned, names, currencies = self.optimizer._load_aligned_returns(symbols)
         if len(aligned.columns) < 2:
             raise InsufficientDataError(
@@ -68,9 +70,7 @@ class SimulationService:
         cov = annualized_covariance(aligned).to_numpy()
         rf = PortfolioAnalyzer(self.db, engine=self.mde).get_risk_free_rate()
 
-        weights = portfolio_for_risk_level(
-            mu, cov, RISK_PROFILE_LEVELS[risk_profile], max_weight
-        )
+        weights = portfolio_for_risk_level(mu, cov, level, max_weight)
         stats = portfolio_stats(weights, mu, cov, rf)
         mu_annual = stats["expected_return"]
         sigma_annual = stats["volatility"]
