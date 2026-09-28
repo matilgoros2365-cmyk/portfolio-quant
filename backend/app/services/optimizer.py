@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import math
 
+import numpy as np
 import pandas as pd
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -18,6 +19,7 @@ from app.quant.expected import (
     annualized_covariance,
     historical_expected_returns,
 )
+from app.quant.formulas import formulas_subset
 from app.quant.optimization import (
     efficient_frontier,
     max_sharpe_weights,
@@ -29,6 +31,7 @@ from app.quant.optimization import (
 from app.quant.returns import simple_returns
 from app.schemas.optimization import (
     FrontierPoint,
+    OptimizationCalculations,
     OptimizationResponse,
     OptimizedPortfolio,
     ProposedWeight,
@@ -43,6 +46,15 @@ RISK_PROFILE_LEVELS: dict[RiskProfile, float] = {
     RiskProfile.MODERATE: 0.50,
     RiskProfile.AGGRESSIVE: 0.75,
     RiskProfile.VERY_AGGRESSIVE: 1.0,
+}
+
+# Etiqueta legible por perfil (para nombrar alternativas).
+RISK_PROFILE_LABELS: dict[RiskProfile, str] = {
+    RiskProfile.VERY_CONSERVATIVE: "Muy conservadora",
+    RiskProfile.CONSERVATIVE: "Conservadora",
+    RiskProfile.MODERATE: "Moderada",
+    RiskProfile.AGGRESSIVE: "Agresiva",
+    RiskProfile.VERY_AGGRESSIVE: "Muy agresiva",
 }
 
 # Mínimo de observaciones en común para optimizar con sentido.
@@ -104,16 +116,23 @@ class PortfolioOptimizer:
         return out
 
     def _make_portfolio(
-        self, strategy, weights, mu, cov, rf, symbols, names
+        self, strategy, weights, mu, cov, rf, symbols, names, label=None
     ) -> OptimizedPortfolio:
         stats = portfolio_stats(weights, mu, cov, rf)
         return OptimizedPortfolio(
             strategy=strategy,
+            label=label,
             expected_return=stats["expected_return"],
             volatility=stats["volatility"],
             sharpe_ratio=_clean(stats["sharpe_ratio"]),
             weights=self._weights_to_list(weights, symbols, names),
         )
+
+    def _matrix_dict(self, df: pd.DataFrame) -> dict[str, dict[str, float | None]]:
+        return {
+            str(row): {str(col): _clean(df.loc[row, col]) for col in df.columns}
+            for row in df.index
+        }
 
     # ------------------------------------------------------------ optimize
     def optimize(
@@ -151,7 +170,21 @@ class PortfolioOptimizer:
             rf,
             ordered_symbols,
             names,
+            label=f"Recomendada ({RISK_PROFILE_LABELS[risk_profile]})",
         )
+
+        # Alternativas: un paso más conservadora y un paso más agresiva.
+        alternatives: list[OptimizedPortfolio] = []
+        for delta, lbl in ((-0.25, "Más conservadora"), (0.25, "Más agresiva")):
+            alt_level = level + delta
+            if 0.0 <= alt_level <= 1.0:
+                alt_w = portfolio_for_risk_level(mu, cov, alt_level, max_weight)
+                alternatives.append(
+                    self._make_portfolio(
+                        f"risk_level:{alt_level:.2f}", alt_w, mu, cov, rf,
+                        ordered_symbols, names, label=lbl,
+                    )
+                )
 
         references = {
             "min_variance": self._make_portfolio(
@@ -211,6 +244,25 @@ class PortfolioOptimizer:
         if not prices_index.empty:
             as_of = prices_index.index[-1]
 
+        # --- Cálculos intermedios (para revisar/auditar) ---
+        cov_df = annualized_covariance(aligned)
+        corr_df = aligned.corr()
+        calculations = OptimizationCalculations(
+            risk_free_rate=round(rf, 6),
+            symbols=ordered_symbols,
+            expected_returns={s: round(float(mu[i]), 4) for i, s in enumerate(ordered_symbols)},
+            volatilities={
+                s: round(float(np.sqrt(cov_df.loc[s, s])), 4) for s in ordered_symbols
+            },
+            correlation_matrix=self._matrix_dict(corr_df.round(4)),
+            covariance_matrix=self._matrix_dict(cov_df.round(6)),
+        )
+        formulas = formulas_subset([
+            "retorno_esperado", "volatilidad", "covarianza", "correlacion",
+            "sharpe", "min_varianza", "max_sharpe", "risk_parity",
+            "frontera_eficiente",
+        ])
+
         return OptimizationResponse(
             base_currency=base_currency,
             risk_profile=risk_profile,
@@ -218,7 +270,10 @@ class PortfolioOptimizer:
             as_of=as_of,
             n_assets=len(ordered_symbols),
             recommended=recommended,
+            alternatives=alternatives,
             reference_portfolios=references,
             efficient_frontier=frontier,
+            calculations=calculations,
+            formulas=formulas,
             notes=notes,
         )

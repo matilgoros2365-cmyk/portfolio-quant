@@ -29,6 +29,7 @@ class FactorProfile(BaseModel):
 class FactorResponse(BaseModel):
     base_currency: str
     risk_profile: RiskProfile
+    analysis_id: int | None = None
     factors: list[str]
     factor_legend: dict[str, str]
     portfolio: FactorProfile

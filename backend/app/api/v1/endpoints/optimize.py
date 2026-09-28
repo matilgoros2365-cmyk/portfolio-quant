@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.schemas.optimization import OptimizationResponse, OptimizeRequest
+from app.services.audit import save_analysis
 from app.services.optimizer import InsufficientDataError, PortfolioOptimizer
 
 router = APIRouter()
@@ -32,7 +33,7 @@ def optimize_portfolio(
         )
     optimizer = PortfolioOptimizer(db)
     try:
-        return optimizer.optimize(
+        result = optimizer.optimize(
             payload.custom_asset_universe,
             risk_profile=payload.risk_profile,
             base_currency=payload.base_currency,
@@ -40,3 +41,10 @@ def optimize_portfolio(
         )
     except InsufficientDataError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    result.analysis_id = save_analysis(
+        db, "optimize", payload.model_dump(mode="json"), result.model_dump(mode="json"),
+        risk_profile=payload.risk_profile.value, base_currency=payload.base_currency,
+        label=result.recommended.label,
+    )
+    return result

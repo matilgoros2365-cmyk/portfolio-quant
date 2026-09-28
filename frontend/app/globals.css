@@ -149,3 +149,50 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .placeholder { text-align: center; color: var(--muted); padding: 60px 20px; }
+
+details.details {
+  margin-top: 18px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: #f8fafc;
+}
+details.details summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--accent);
+}
+details.details[open] summary { margin-bottom: 8px; }
+
+code {
+  background: #eef2ff;
+  padding: 1px 5px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-family: "SF Mono", Consolas, "Courier New", monospace;
+}
+
+.codeblock {
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  overflow-x: auto;
+  max-height: 340px;
+  overflow-y: auto;
+  font-family: "SF Mono", Consolas, "Courier New", monospace;
+  line-height: 1.5;
+}
+
+.linkbtn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 4px;
+}
+.linkbtn:hover { text-decoration: underline; }

@@ -55,6 +55,7 @@ class OverlapItem(BaseModel):
 class RiskAnalysisResponse(BaseModel):
     base_currency: str
     risk_profile: RiskProfile
+    analysis_id: int | None = None
     as_of: date | None = None
     n_assets: int
     weights: list[ProposedWeight]

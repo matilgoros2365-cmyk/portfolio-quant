@@ -28,6 +28,7 @@ class ProposedWeight(BaseModel):
 
 class OptimizedPortfolio(BaseModel):
     strategy: str
+    label: str | None = None
     expected_return: float
     volatility: float
     sharpe_ratio: float | None = None
@@ -40,15 +41,31 @@ class FrontierPoint(BaseModel):
     sharpe_ratio: float | None = None
 
 
+class OptimizationCalculations(BaseModel):
+    """Cálculos intermedios (para revisar/auditar)."""
+
+    risk_free_rate: float
+    symbols: list[str]
+    expected_returns: dict[str, float]      # anualizado por activo
+    volatilities: dict[str, float]          # anualizado por activo
+    correlation_matrix: dict[str, dict[str, float | None]]
+    covariance_matrix: dict[str, dict[str, float | None]]
+
+
 class OptimizationResponse(BaseModel):
     base_currency: str
     risk_profile: RiskProfile
     risk_free_rate: float
     as_of: date | None = None
     n_assets: int
+    analysis_id: int | None = None
     # Cartera recomendada según el perfil de riesgo.
     recommended: OptimizedPortfolio
+    # Alternativas (más conservadora / más agresiva) para comparar.
+    alternatives: list[OptimizedPortfolio] = []
     # Carteras clásicas de referencia (mín. varianza, máx. Sharpe, risk parity).
     reference_portfolios: dict[str, OptimizedPortfolio]
     efficient_frontier: list[FrontierPoint]
+    calculations: OptimizationCalculations | None = None
+    formulas: dict[str, dict[str, str]] = {}
     notes: list[str] = []

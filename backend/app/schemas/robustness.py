@@ -28,6 +28,7 @@ class StabilityItem(BaseModel):
 class RobustnessResponse(BaseModel):
     base_currency: str
     risk_profile: RiskProfile
+    analysis_id: int | None = None
     risk_aversion: float
     instability: float         # dispersión media de pesos (0 = perfectamente estable)
     n_resamples: int

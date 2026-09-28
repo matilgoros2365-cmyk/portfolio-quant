@@ -13,6 +13,7 @@ from app.quant.monte_carlo import (
     summarize_terminal,
     yearly_bands,
 )
+from app.quant.formulas import formulas_subset
 from app.quant.optimization import portfolio_for_risk_level, portfolio_stats
 from app.quant.scenarios import HISTORICAL_CRISES, portfolio_scenario_return
 from app.schemas.optimization import ProposedWeight
@@ -162,5 +163,6 @@ class SimulationService:
             terminal=terminal,
             yearly_bands=bands,
             historical_scenarios=scenarios,
+            formulas=formulas_subset(["retorno_esperado", "volatilidad", "monte_carlo"]),
             notes=notes,
         )

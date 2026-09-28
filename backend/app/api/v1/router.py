@@ -4,6 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
+    analyses,
     factors,
     market_data,
     optimize,
@@ -21,3 +22,4 @@ api_router.include_router(risk.router, tags=["portfolio"])
 api_router.include_router(simulate.router, tags=["portfolio"])
 api_router.include_router(factors.router, tags=["portfolio"])
 api_router.include_router(robustness.router, tags=["portfolio"])
+api_router.include_router(analyses.router, tags=["analyses"])

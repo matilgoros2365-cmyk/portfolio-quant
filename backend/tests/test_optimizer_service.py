@@ -96,6 +96,13 @@ def test_optimize_returns_valid_recommendation(optimizer: PortfolioOptimizer) ->
     # Están las 3 carteras de referencia y la frontera.
     assert set(resp.reference_portfolios) == {"min_variance", "max_sharpe", "risk_parity"}
     assert len(resp.efficient_frontier) >= 2
+    # Alternativas: MODERATE tiene una más conservadora y una más agresiva.
+    assert len(resp.alternatives) == 2
+    assert {a.label for a in resp.alternatives} == {"Más conservadora", "Más agresiva"}
+    # Cálculos y fórmulas quedan disponibles para revisar.
+    assert resp.calculations is not None
+    assert set(resp.calculations.symbols) == {"AAA", "BBB", "CCC"}
+    assert "min_varianza" in resp.formulas
 
 
 def test_conservative_has_lower_vol_than_aggressive(optimizer: PortfolioOptimizer) -> None:

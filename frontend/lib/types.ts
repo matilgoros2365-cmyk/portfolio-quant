@@ -16,6 +16,8 @@ export interface FormInputs {
   target_wealth: number | null;
   custom_asset_universe: string[];
   max_weight: number | null;
+  method: "gaussian" | "student_t" | "bootstrap";
+  n_simulations: number;
 }
 
 export interface ProposedWeight {
@@ -26,10 +28,25 @@ export interface ProposedWeight {
 
 export interface OptimizedPortfolio {
   strategy: string;
+  label: string | null;
   expected_return: number;
   volatility: number;
   sharpe_ratio: number | null;
   weights: ProposedWeight[];
+}
+
+export interface Formula {
+  formula: string;
+  descripcion: string;
+}
+
+export interface OptimizationCalculations {
+  risk_free_rate: number;
+  symbols: string[];
+  expected_returns: Record<string, number>;
+  volatilities: Record<string, number>;
+  correlation_matrix: Record<string, Record<string, number | null>>;
+  covariance_matrix: Record<string, Record<string, number | null>>;
 }
 
 export interface FrontierPoint {
@@ -44,9 +61,13 @@ export interface OptimizeResponse {
   risk_free_rate: number;
   as_of: string | null;
   n_assets: number;
+  analysis_id: number | null;
   recommended: OptimizedPortfolio;
+  alternatives: OptimizedPortfolio[];
   reference_portfolios: Record<string, OptimizedPortfolio>;
   efficient_frontier: FrontierPoint[];
+  calculations: OptimizationCalculations | null;
+  formulas: Record<string, Formula>;
   notes: string[];
 }
 
@@ -121,6 +142,7 @@ export interface ScenarioImpact {
 }
 
 export interface SimulateResponse {
+  analysis_id: number | null;
   method: string;
   n_simulations: number;
   horizon_years: number;
@@ -130,5 +152,73 @@ export interface SimulateResponse {
   terminal: TerminalDistribution;
   yearly_bands: YearBand[];
   historical_scenarios: ScenarioImpact[];
+  formulas: Record<string, Formula>;
   notes: string[];
+}
+
+export type SimMethod = "gaussian" | "student_t" | "bootstrap";
+
+// ---- Factores ----
+export interface FactorExposure {
+  factor: string;
+  beta: number;
+  t_stat: number | null;
+}
+export interface FactorProfile {
+  symbol: string;
+  name: string | null;
+  alpha_annualized: number | null;
+  r_squared: number | null;
+  n_obs: number;
+  exposures: FactorExposure[];
+}
+export interface FactorResponse {
+  base_currency: string;
+  risk_profile: RiskProfile;
+  analysis_id: number | null;
+  factors: string[];
+  factor_legend: Record<string, string>;
+  portfolio: FactorProfile;
+  assets: FactorProfile[];
+  notes: string[];
+}
+
+// ---- Robustez ----
+export interface ExpectedReturnComparison {
+  symbol: string;
+  historical: number;
+  black_litterman: number;
+}
+export interface StabilityItem {
+  symbol: string;
+  recommended_weight: number;
+  mean_weight: number;
+  std_weight: number;
+}
+export interface RobustnessResponse {
+  base_currency: string;
+  risk_profile: RiskProfile;
+  analysis_id: number | null;
+  risk_aversion: number;
+  instability: number;
+  n_resamples: number;
+  expected_returns: ExpectedReturnComparison[];
+  historical_weights: ProposedWeight[];
+  black_litterman_weights: ProposedWeight[];
+  stability: StabilityItem[];
+  notes: string[];
+}
+
+// ---- Historial ----
+export interface AnalysisSummary {
+  id: number;
+  kind: string;
+  created_at: string;
+  risk_profile: string | null;
+  base_currency: string | null;
+  label: string | null;
+}
+export interface AnalysisDetail extends AnalysisSummary {
+  inputs: Record<string, unknown>;
+  result: Record<string, unknown>;
 }

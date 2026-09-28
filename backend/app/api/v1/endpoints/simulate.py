@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.schemas.simulation import SimulateRequest, SimulationResponse
+from app.services.audit import save_analysis
 from app.services.optimizer import InsufficientDataError
 from app.services.simulation import SimulationService
 
@@ -33,7 +34,7 @@ def simulate_portfolio(
         )
     service = SimulationService(db)
     try:
-        return service.simulate(
+        result = service.simulate(
             payload.custom_asset_universe,
             risk_profile=payload.risk_profile,
             initial_capital=payload.initial_capital,
@@ -49,3 +50,9 @@ def simulate_portfolio(
         )
     except InsufficientDataError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    result.analysis_id = save_analysis(
+        db, "simulate", payload.model_dump(mode="json"), result.model_dump(mode="json"),
+        risk_profile=payload.risk_profile.value, base_currency=payload.base_currency,
+    )
+    return result

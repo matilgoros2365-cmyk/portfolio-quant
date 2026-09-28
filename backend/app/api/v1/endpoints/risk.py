@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.schemas.risk import RiskAnalysisResponse, RiskRequest
+from app.services.audit import save_analysis
 from app.services.optimizer import InsufficientDataError
 from app.services.risk_analysis import RiskAnalyzer
 
@@ -32,7 +33,7 @@ def analyze_risk(
         )
     analyzer = RiskAnalyzer(db)
     try:
-        return analyzer.analyze(
+        result = analyzer.analyze(
             payload.custom_asset_universe,
             risk_profile=payload.risk_profile,
             base_currency=payload.base_currency,
@@ -41,3 +42,9 @@ def analyze_risk(
         )
     except InsufficientDataError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    result.analysis_id = save_analysis(
+        db, "risk", payload.model_dump(mode="json"), result.model_dump(mode="json"),
+        risk_profile=payload.risk_profile.value, base_currency=payload.base_currency,
+    )
+    return result

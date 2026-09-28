@@ -12,7 +12,7 @@ from app.schemas.optimization import OptimizeRequest, ProposedWeight
 
 class SimulateRequest(OptimizeRequest):
     method: Literal["gaussian", "student_t", "bootstrap"] = "gaussian"
-    n_simulations: int = Field(default=10_000, ge=100, le=50_000)
+    n_simulations: int = Field(default=50_000, ge=100, le=200_000)
     student_t_df: int = Field(default=5, ge=3, le=30, description="Grados de libertad (t-Student).")
     random_seed: int | None = None
 
@@ -46,6 +46,7 @@ class ScenarioImpact(BaseModel):
 class SimulationResponse(BaseModel):
     base_currency: str
     risk_profile: RiskProfile
+    analysis_id: int | None = None
     method: str
     n_simulations: int
     horizon_years: int
@@ -58,4 +59,5 @@ class SimulationResponse(BaseModel):
     terminal: TerminalDistribution
     yearly_bands: list[YearBand]
     historical_scenarios: list[ScenarioImpact]
+    formulas: dict[str, dict[str, str]] = {}
     notes: list[str] = []
