@@ -120,7 +120,7 @@ class OpenRouterAdvisor(AIAdvisor):
                         {"role": "user", "content": _build_prompt(context, allowlist)},
                     ],
                     "temperature": 0.4,
-                    "max_tokens": 900,
+                    "max_tokens": 1800,
                 },
                 timeout=self.timeout,
             )

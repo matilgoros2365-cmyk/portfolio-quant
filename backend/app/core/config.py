@@ -40,7 +40,8 @@ class Settings(BaseSettings):
     # --- Asesor IA (opcional; OpenRouter, gratis). Sin key -> modelos curados. ---
     # Key gratuita en: https://openrouter.ai/settings/keys
     openrouter_api_key: str | None = None
-    openrouter_model: str = "openrouter/free"
+    # Modelo gratis que responde JSON de forma confiable (probado). Cambiable en .env.
+    openrouter_model: str = "nvidia/nemotron-3-super-120b-a12b:free"
 
 
 settings = Settings()
