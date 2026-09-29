@@ -32,10 +32,12 @@ class Settings(BaseSettings):
     fred_api_key: str | None = None
 
     # --- CORS (orígenes permitidos para el frontend) ---
-    cors_origins: list[str] = [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ]
+    # Coma-separado. En deploy: poner acá la URL del frontend (ej. Vercel).
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
     # --- Asesor IA (opcional; OpenRouter, gratis). Sin key -> modelos curados. ---
     # Key gratuita en: https://openrouter.ai/settings/keys

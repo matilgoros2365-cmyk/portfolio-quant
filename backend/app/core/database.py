@@ -18,17 +18,23 @@ class Base(DeclarativeBase):
     """Base declarativa compartida por todos los modelos ORM."""
 
 
+# Normalizar la URL de Postgres para que use el driver psycopg 3 (deploy).
+_db_url = settings.database_url
+if _db_url.startswith("postgres://"):
+    _db_url = _db_url.replace("postgres://", "postgresql+psycopg://", 1)
+elif _db_url.startswith("postgresql://"):
+    _db_url = _db_url.replace("postgresql://", "postgresql+psycopg://", 1)
+
+_is_sqlite = _db_url.startswith("sqlite")
+
 # SQLite necesita `check_same_thread=False` para poder usarse desde FastAPI.
-_connect_args = (
-    {"check_same_thread": False}
-    if settings.database_url.startswith("sqlite")
-    else {}
-)
+_connect_args = {"check_same_thread": False} if _is_sqlite else {}
 
 engine = create_engine(
-    settings.database_url,
+    _db_url,
     echo=settings.db_echo,
     connect_args=_connect_args,
+    pool_pre_ping=not _is_sqlite,  # reconecta si Postgres cerró la conexión ociosa
     future=True,
 )
 
@@ -41,7 +47,7 @@ SessionLocal = sessionmaker(
 )
 
 
-if settings.database_url.startswith("sqlite"):
+if _is_sqlite:
 
     @event.listens_for(engine, "connect")
     def _sqlite_pragmas(dbapi_conn, _record):  # pragma: no cover
