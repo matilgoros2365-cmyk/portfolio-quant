@@ -9,6 +9,7 @@ from app.models.asset import Asset, AssetType
 from app.models.daily_price import DailyPrice
 from app.models.fund_holding import FundHolding
 from app.models.macro_series import MacroSeries
+from app.models.paper import PaperAccount, PaperPosition, PaperTransaction
 from app.models.portfolio import Portfolio, RiskProfile
 from app.models.user import User
 
@@ -20,6 +21,9 @@ __all__ = [
     "DailyPrice",
     "FundHolding",
     "MacroSeries",
+    "PaperAccount",
+    "PaperPosition",
+    "PaperTransaction",
     "Portfolio",
     "RiskProfile",
     "User",

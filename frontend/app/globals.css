@@ -289,6 +289,26 @@ code {
   font-size: 11px; font-weight: 700; background: linear-gradient(135deg, #4f46e5, #0ea5e9);
   color: #fff; vertical-align: middle;
 }
+
+/* ---- Modo práctica ---- */
+.search-results { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; max-height: 260px; overflow-y: auto; }
+.search-results .q-option { padding: 10px 12px; font-size: 14px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.chip {
+  border: 1px solid var(--line); background: #fff; border-radius: 999px;
+  padding: 7px 13px; font-size: 13px; cursor: pointer; color: var(--ink);
+}
+.chip:hover { border-color: #c7d2fe; background: #fafaff; }
+.chip.selected { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.buy-bar {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); flex-wrap: wrap;
+}
+.basket {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 10px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap;
+}
+.basket:last-child { border-bottom: none; }
 .rs-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 22px; }
 .rs-actions .btn { width: auto; margin-top: 0; }
 .rs-disclaimer { font-size: 12px; color: var(--muted); margin-top: 18px; line-height: 1.5; }

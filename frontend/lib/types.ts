@@ -321,6 +321,47 @@ export interface AssetDetail {
   };
 }
 
+// ---- Modo práctica (paper trading) ----
+export interface PaperPosition {
+  symbol: string;
+  quantity: number;
+  avg_cost: number;
+  price: number | null;
+  market_value: number;
+  cost_basis: number;
+  pnl: number;
+  pnl_pct: number | null;
+}
+export interface PaperTransaction {
+  symbol: string;
+  side: string;
+  quantity: number;
+  price: number;
+  amount: number;
+  created_at: string;
+}
+export interface PaperSnapshot {
+  base_currency: string;
+  cash: number;
+  initial_cash: number;
+  invested: number;
+  positions_value: number;
+  total_value: number;
+  total_return: number;
+  positions: PaperPosition[];
+  transactions: PaperTransaction[];
+}
+export interface SearchResult {
+  symbol: string;
+  name: string;
+  type: string;
+  exchange: string | null;
+}
+export interface MarketCatalog {
+  categorias: Record<string, { symbol: string; name: string }[]>;
+  carteras: { id: string; name: string; tickers: string[]; description: string }[];
+}
+
 // ---- Mercado argentino ----
 export interface DollarRate {
   name: string;

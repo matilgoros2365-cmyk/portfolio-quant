@@ -61,6 +61,7 @@ export default function ResultScreen({
   onAdvanced,
   onRedo,
   onSwitch,
+  onPractice,
 }: {
   userName: string;
   assessment: AssessmentResult;
@@ -68,6 +69,7 @@ export default function ResultScreen({
   onAdvanced: () => void;
   onRedo: () => void;
   onSwitch: () => void;
+  onPractice: () => void;
 }) {
   const rec = recommendation.optimization.recommended;
   const sim = recommendation.simulation;
@@ -159,7 +161,8 @@ export default function ResultScreen({
         <PortfolioComposition weights={rec.weights} />
 
         <div className="rs-actions">
-          <button className="btn" onClick={onAdvanced}>Ver análisis avanzado</button>
+          <button className="btn" onClick={onPractice}>Practicar con plata ficticia</button>
+          <button className="btn-secondary" onClick={onAdvanced}>Ver análisis avanzado</button>
           <button className="btn-secondary" onClick={onRedo}>¿Cambió algo? Rehacer cuestionario</button>
         </div>
 

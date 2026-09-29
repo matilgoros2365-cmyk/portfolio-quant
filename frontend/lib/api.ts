@@ -7,10 +7,13 @@ import type {
   AssetDetail,
   FactorResponse,
   FormInputs,
+  MarketCatalog,
   OptimizeResponse,
+  PaperSnapshot,
   Recommendation,
   RiskResponse,
   RobustnessResponse,
+  SearchResult,
   SimulateResponse,
 } from "./types";
 
@@ -112,4 +115,31 @@ export function getAssetDetail(symbol: string) {
 
 export function getArgentinaMarket() {
   return get<ArgentinaMarket>("/market/argentina");
+}
+
+// ---- Modo práctica (paper trading) ----
+export function getPaper(userId: string) {
+  return get<PaperSnapshot>(`/users/${userId}/paper`);
+}
+export function paperBuy(userId: string, symbol: string, amount: number) {
+  return post<PaperSnapshot>(`/users/${userId}/paper/buy`, { symbol, amount });
+}
+export function paperSell(userId: string, symbol: string, opts: { amount?: number; all?: boolean }) {
+  return post<PaperSnapshot>(`/users/${userId}/paper/sell`, { symbol, ...opts });
+}
+export function paperBuyPortfolio(
+  userId: string,
+  allocations: { symbol: string; weight: number }[],
+  amount?: number
+) {
+  return post<PaperSnapshot>(`/users/${userId}/paper/buy-portfolio`, { allocations, amount });
+}
+export function paperReset(userId: string) {
+  return post<PaperSnapshot>(`/users/${userId}/paper/reset`, {});
+}
+export function searchMarket(q: string) {
+  return get<SearchResult[]>(`/market/search?q=${encodeURIComponent(q)}`);
+}
+export function getCatalog() {
+  return get<MarketCatalog>("/market/catalog");
 }

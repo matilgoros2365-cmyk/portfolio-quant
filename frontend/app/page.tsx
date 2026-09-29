@@ -18,8 +18,9 @@ import ProfileSelector from "@/components/ProfileSelector";
 import Questionnaire from "@/components/Questionnaire";
 import ResultScreen from "@/components/ResultScreen";
 import AdvancedDashboard from "@/components/AdvancedDashboard";
+import PaperScreen from "@/components/PaperScreen";
 
-type View = "profiles" | "questionnaire" | "result" | "advanced";
+type View = "profiles" | "questionnaire" | "result" | "advanced" | "practica";
 
 export default function Home() {
   const [view, setView] = useState<View>("profiles");
@@ -158,10 +159,19 @@ export default function Home() {
               onAdvanced={() => setView("advanced")}
               onRedo={() => setView("questionnaire")}
               onSwitch={resetToProfiles}
+              onPractice={() => setView("practica")}
             />
           )}
           {view === "advanced" && (
             <AdvancedDashboard initialInputs={advancedInputs()} onBack={() => setView("result")} />
+          )}
+          {view === "practica" && user && (
+            <PaperScreen
+              userId={user.id}
+              userName={user.name}
+              recommended={recommendation?.optimization.recommended.weights}
+              onBack={() => setView(recommendation ? "result" : "profiles")}
+            />
           )}
         </>
       ) : null}

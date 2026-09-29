@@ -9,8 +9,21 @@ from app.schemas.analysis import AssetMetrics
 from app.schemas.market_detail import AssetDetail, Composition, Quote
 from app.services.analysis import PortfolioAnalyzer
 from app.services.market_data.yahoo import YahooFinanceProvider
+from app.services.market_search import catalog, search_symbols
 
 router = APIRouter()
+
+
+@router.get("/market/search")
+def market_search(q: str = Query("", description="Nombre o ticker a buscar")) -> list[dict]:
+    """Busca instrumentos (acciones, cripto, bonos, ETFs...) por nombre o ticker."""
+    return search_symbols(q)
+
+
+@router.get("/market/catalog")
+def market_catalog() -> dict:
+    """Listas rápidas por categoría + carteras armadas."""
+    return catalog()
 
 
 @router.get("/market-data/{symbol}", response_model=AssetMetrics)
