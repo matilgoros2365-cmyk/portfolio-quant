@@ -11,7 +11,10 @@ from app.profiling import config as C
 # Etiquetas por instrumento (para aplicar exclusiones).
 TICKER_TAGS: dict[str, set[str]] = {
     "VT": {"broad_etf"},
+    "VOO": {"broad_etf"},
+    "QQQ": {"broad_etf"},
     "BND": {"broad_etf", "bonds"},
+    "TLT": {"broad_etf", "bonds"},
     "GLD": {"broad_etf", "commodity"},
     "ARGT": {"broad_etf", "argentina"},
     "GGAL": {"individual_companies", "argentina"},
@@ -46,8 +49,13 @@ def build_universe(
     else:
         tickers = list(C.UNIVERSE_GLOBAL)
 
+    return filter_tickers(tickers, exclusions)
+
+
+def filter_tickers(tickers: list[str], exclusions: list[str] | None = None) -> list[str]:
+    """Saca de una lista de tickers los que caen en alguna exclusión pedida."""
+    exclusions = exclusions or []
     excl_tags: set[str] = set()
     for e in exclusions:
         excl_tags |= EXCLUSION_TO_TAGS.get(e, set())
-
     return [t for t in tickers if not (TICKER_TAGS.get(t, set()) & excl_tags)]

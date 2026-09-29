@@ -37,8 +37,12 @@ class FakePriceProvider(PriceProvider):
     name = "fake"
     _SERIES = {
         "VT": _path(1, 0.0005, 0.011),
-        "BND": _path(2, 0.0002, 0.004),
-        "GLD": _path(3, 0.0003, 0.008),
+        "VOO": _path(2, 0.0006, 0.012),
+        "QQQ": _path(3, 0.0007, 0.016),
+        "BND": _path(4, 0.0002, 0.004),
+        "TLT": _path(5, 0.0002, 0.009),
+        "GLD": _path(6, 0.0003, 0.008),
+        "ARGT": _path(7, 0.0004, 0.020),
     }
 
     def get_historical_prices(self, symbol, start=None, end=None) -> pd.DataFrame:
@@ -91,8 +95,9 @@ def test_recommend_from_profile(db: Session) -> None:
     )
 
     inp = result["resolved_inputs"]
-    # Universo armado automáticamente (default global).
-    assert inp["symbols"] == ["VT", "BND", "GLD"]
+    # Perfil agresivo con objetivo "grow" -> modelo de crecimiento (no siempre el mismo).
+    assert result["primary_model"].id == "growth_tech"
+    assert inp["symbols"] == ["QQQ", "VOO", "GLD"]
     assert inp["monthly_contribution"] == 900.0  # haircut 0.9 aplicado
     assert inp["investment_horizon_years"] == 15
 
@@ -103,7 +108,14 @@ def test_recommend_from_profile(db: Session) -> None:
     sim = result["simulation"]
     assert sim.analysis_id is not None
     assert sim.terminal.prob_reaching_target is not None
-    # Los análisis quedan asociados al usuario.
+
+    # Ofrece alternativas (otros modelos de cartera) con su lógica y riesgos.
+    assert len(result["alternatives"]) >= 2
+    alt = result["alternatives"][0]
+    assert alt.rationale and alt.risks
+    assert abs(sum(w.weight for w in alt.weights) - 1.0) < 0.02
+
+    # Los análisis (primario) quedan asociados al usuario.
     from app.models.analysis_run import AnalysisRun
     from sqlalchemy import select
     runs = db.scalars(select(AnalysisRun).where(AnalysisRun.user_id == user.id)).all()

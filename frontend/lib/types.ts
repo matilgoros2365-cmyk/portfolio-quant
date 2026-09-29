@@ -264,10 +264,37 @@ export interface AssessmentResult {
   derived: Record<string, any>;
 }
 
+export interface ModelInfo {
+  id: string;
+  name: string;
+  description: string;
+  rationale: string;
+  risks: string;
+}
+export interface ModelPortfolio extends ModelInfo {
+  expected_return: number;
+  volatility: number;
+  sharpe_ratio: number | null;
+  weights: ProposedWeight[];
+}
+export interface GoalReconciliation {
+  current_prob: number;
+  target_prob: number;
+  needs_action: boolean;
+  achievable_target: number | null;
+  monthly_needed: number | null;
+  extra_per_month: number | null;
+  years_needed: number | null;
+  extra_years: number | null;
+}
+
 export interface Recommendation {
   resolved_inputs: Record<string, any>;
+  primary_model: ModelInfo;
   optimization: OptimizeResponse;
   simulation: SimulateResponse;
+  alternatives: ModelPortfolio[];
+  goal_reconciliation: GoalReconciliation | null;
 }
 
 // ---- Detalle de activo (precio + qué hay adentro) ----

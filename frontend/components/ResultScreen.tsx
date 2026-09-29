@@ -1,7 +1,7 @@
 "use client";
 
 import type { AssessmentResult, Recommendation } from "@/lib/types";
-import { fmtCurrency, fmtPct } from "@/lib/format";
+import { fmtCurrency, fmtNum, fmtPct } from "@/lib/format";
 import WeightsPie from "@/components/WeightsPie";
 import PortfolioComposition from "@/components/PortfolioComposition";
 import ArgentinaPanel from "@/components/ArgentinaPanel";
@@ -77,7 +77,7 @@ export default function ResultScreen({
     ? Math.min(...sim.historical_scenarios.map((x) => x.portfolio_return))
     : null;
   const prob = sim.terminal.prob_reaching_target;
-  const alarm = recommendation.resolved_inputs.goal_alarm_prob ?? 0;
+  const recon = recommendation.goal_reconciliation;
 
   return (
     <div className="container rs">
@@ -92,6 +92,9 @@ export default function ResultScreen({
         <p className="rs-goal">
           PortfolioQuant va a buscar una cartera que priorice: <strong>{objetivo(rec.label ?? assessment.profile.risk_label)}</strong>
         </p>
+        <p className="rs-summary" style={{ marginTop: 10 }}>
+          Para vos elegimos la cartera <strong>«{recommendation.primary_model.name}»</strong>: {recommendation.primary_model.rationale}
+        </p>
       </div>
 
       <div className="card">
@@ -104,10 +107,22 @@ export default function ResultScreen({
           </div>
         ) : null}
 
-        {prob !== null && target && prob < alarm ? (
+        {recon && recon.needs_action ? (
           <div className="rs-lever">
-            Para acercarte más a tu objetivo sin tomar más riesgo del que te conviene, podrías
-            aportar un poco más por mes, darle más tiempo, o ajustar la meta. Lo vemos juntos cuando quieras.
+            <strong>Hoy tu objetivo es poco probable ({fmtPct(recon.current_prob, 0)}).</strong> Para
+            acercarte a ~{fmtPct(recon.target_prob, 0)} sin tomar más riesgo del que te conviene, podrías:
+            <ul>
+              {recon.extra_per_month && recon.monthly_needed ? (
+                <li>Aportar <strong>{fmtCurrency(recon.monthly_needed, currency)}/mes</strong> (unos {fmtCurrency(recon.extra_per_month, currency)} más que ahora).</li>
+              ) : null}
+              {recon.extra_years && recon.years_needed ? (
+                <li>Darle <strong>{recon.extra_years} año{recon.extra_years > 1 ? "s" : ""} más</strong> (en total {recon.years_needed} años).</li>
+              ) : null}
+              {recon.achievable_target ? (
+                <li>O ajustar la meta a <strong>{fmtCurrency(recon.achievable_target, currency)}</strong>, que sí alcanzás con ~{fmtPct(recon.target_prob, 0)} de probabilidad.</li>
+              ) : null}
+            </ul>
+            No subimos el riesgo para "forzar" la meta: eso te expondría a caídas que no te convienen.
           </div>
         ) : null}
 
@@ -152,6 +167,34 @@ export default function ResultScreen({
           rendimientos futuros. Las compras las realizás vos por tu cuenta.
         </p>
       </div>
+
+      {recommendation.alternatives.length > 0 ? (
+        <div className="card">
+          <h2>Otras carteras posibles (y sus riesgos)</h2>
+          <p className="sub" style={{ marginBottom: 12 }}>
+            No hay una sola forma de invertir. Estas son otras opciones para tu mismo nivel de
+            riesgo, con por qué elegirlas y qué implican.
+          </p>
+          <div className="alt-list">
+            {recommendation.alternatives.map((a) => (
+              <div className="alt-card" key={a.id}>
+                <div className="alt-head">
+                  <strong>{a.name}</strong>
+                  <span className="alt-metrics">
+                    Retorno {fmtPct(a.expected_return)} · Vol {fmtPct(a.volatility)} · Sharpe {fmtNum(a.sharpe_ratio)}
+                  </span>
+                </div>
+                <div className="alt-desc">{a.description}</div>
+                <div className="alt-weights">
+                  {a.weights.map((w) => `${w.symbol} ${(w.weight * 100).toFixed(0)}%`).join(" · ")}
+                </div>
+                <div className="alt-why"><span>Por qué elegirla:</span> {a.rationale}</div>
+                <div className="alt-risk"><span>Riesgo de elegirla:</span> {a.risks}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="card">
         <h2>Referencias del mercado argentino</h2>
