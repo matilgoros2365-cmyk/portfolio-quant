@@ -222,3 +222,50 @@ export interface AnalysisDetail extends AnalysisSummary {
   inputs: Record<string, unknown>;
   result: Record<string, unknown>;
 }
+
+// ---- Perfiles locales / onboarding ----
+export interface AppUser {
+  id: string;
+  name: string;
+  avatar_color: string | null;
+  created_at: string;
+}
+
+export interface ProfileResult {
+  risk_level: number;
+  risk_label: string;
+  max_weight: number;
+  techo_capacidad: number;
+  tolerancia: number;
+  capacity_binding: boolean;
+  tolerance_binding: boolean;
+  overall_confidence: number;
+  horizon_years: number | null;
+  mc_contribution_factor: number;
+  goal_priority: string | null;
+  goal_alarm_prob: number;
+  exclusions: string[];
+  dimensions: Array<{
+    name: string;
+    score: number;
+    confidence: number;
+    evidence_count: number;
+    contributions: Array<Record<string, unknown>>;
+  }>;
+}
+
+export interface AssessmentResult {
+  id: number;
+  user_id: string;
+  created_at: string;
+  is_current: boolean;
+  answers: Record<string, any>;
+  profile: ProfileResult;
+  derived: Record<string, any>;
+}
+
+export interface Recommendation {
+  resolved_inputs: Record<string, any>;
+  optimization: OptimizeResponse;
+  simulation: SimulateResponse;
+}

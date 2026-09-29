@@ -1,9 +1,12 @@
 import type {
   AnalysisDetail,
   AnalysisSummary,
+  AppUser,
+  AssessmentResult,
   FactorResponse,
   FormInputs,
   OptimizeResponse,
+  Recommendation,
   RiskResponse,
   RobustnessResponse,
   SimulateResponse,
@@ -74,4 +77,29 @@ export function listAnalyses(limit = 50) {
 
 export function getAnalysis(id: number) {
   return get<AnalysisDetail>(`/analyses/${id}`);
+}
+
+// ---- Perfiles locales / onboarding ----
+export function listUsers() {
+  return get<AppUser[]>("/users");
+}
+
+export function createUser(name: string, avatar_color?: string) {
+  return post<AppUser>("/users", { name, avatar_color });
+}
+
+export function createAssessment(userId: string, answers: Record<string, unknown>) {
+  return post<AssessmentResult>(`/users/${userId}/assessments`, { answers });
+}
+
+export async function getCurrentAssessment(userId: string): Promise<AssessmentResult | null> {
+  try {
+    return await get<AssessmentResult>(`/users/${userId}/assessments/current`);
+  } catch {
+    return null; // 404 = todavía no completó el cuestionario
+  }
+}
+
+export function getRecommendation(userId: string) {
+  return get<Recommendation>(`/users/${userId}/recommendation`);
 }
