@@ -272,3 +272,29 @@ code {
 .rs-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 22px; }
 .rs-actions .btn { width: auto; margin-top: 0; }
 .rs-disclaimer { font-size: 12px; color: var(--muted); margin-top: 18px; line-height: 1.5; }
+
+/* ---- Composición de la cartera ---- */
+.comp-list { display: flex; flex-direction: column; gap: 12px; }
+.comp-card { border: 1px solid var(--line); border-radius: 11px; padding: 14px 16px; background: #fff; }
+.comp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.comp-sym { font-weight: 700; font-size: 16px; margin-right: 8px; }
+.comp-name { color: var(--muted); font-size: 13px; }
+.comp-right { text-align: right; }
+.comp-weight { font-size: 12px; color: var(--muted); }
+.comp-price { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.comp-price .pos { font-size: 12px; font-weight: 600; }
+.comp-price .neg { font-size: 12px; font-weight: 600; }
+.comp-rubro { font-size: 13px; color: #475569; margin-top: 8px; }
+.comp-sectors { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.comp-tag { background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 600; }
+.comp-holdings { font-size: 13px; color: #334155; margin-top: 10px; line-height: 1.5; }
+.comp-holdings-t { font-weight: 600; }
+.comp-summary { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+
+/* ---- Panel mercado argentino ---- */
+.arg-panel { }
+.arg-dollars { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
+.arg-rate { background: #f8fafc; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.arg-rate-name { font-size: 12px; color: var(--muted); font-weight: 600; }
+.arg-rate-val { font-size: 20px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.arg-note { font-size: 11px; color: var(--muted); margin-top: 12px; line-height: 1.5; }

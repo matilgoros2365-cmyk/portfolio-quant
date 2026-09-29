@@ -3,6 +3,8 @@
 import type { AssessmentResult, Recommendation } from "@/lib/types";
 import { fmtCurrency, fmtPct } from "@/lib/format";
 import WeightsPie from "@/components/WeightsPie";
+import PortfolioComposition from "@/components/PortfolioComposition";
+import ArgentinaPanel from "@/components/ArgentinaPanel";
 
 const GOAL: Record<string, string> = {
   grow: "hacer crecer tus ahorros",
@@ -136,6 +138,10 @@ export default function ResultScreen({
         <div className="section-title">Tu cartera</div>
         <WeightsPie weights={rec.weights} />
 
+        <div className="section-title">Qué hay adentro de tu cartera</div>
+        <p className="sub" style={{ marginBottom: 12 }}>Cada fondo agrupa muchas empresas. Esto es lo que estás comprando, con su precio de hoy (diferido ~15 min).</p>
+        <PortfolioComposition weights={rec.weights} />
+
         <div className="rs-actions">
           <button className="btn" onClick={onAdvanced}>Ver análisis avanzado</button>
           <button className="btn-secondary" onClick={onRedo}>¿Cambió algo? Rehacer cuestionario</button>
@@ -145,6 +151,12 @@ export default function ResultScreen({
           Esto no es asesoramiento financiero personalizado. Rendimientos pasados no garantizan
           rendimientos futuros. Las compras las realizás vos por tu cuenta.
         </p>
+      </div>
+
+      <div className="card">
+        <h2>Referencias del mercado argentino</h2>
+        <p className="sub" style={{ marginBottom: 12 }}>Para tener contexto local. Tu cartera está en dólares.</p>
+        <ArgentinaPanel />
       </div>
     </div>
   );

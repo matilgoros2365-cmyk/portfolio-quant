@@ -269,3 +269,39 @@ export interface Recommendation {
   optimization: OptimizeResponse;
   simulation: SimulateResponse;
 }
+
+// ---- Detalle de activo (precio + qué hay adentro) ----
+export interface Quote {
+  price: number | null;
+  previous_close: number | null;
+  change_pct: number | null;
+  currency: string;
+}
+export interface AssetDetail {
+  symbol: string;
+  quote: Quote;
+  composition: {
+    kind: string;
+    name: string | null;
+    category: string | null;
+    sector: string | null;
+    industry: string | null;
+    country: string | null;
+    summary: string | null;
+    sector_weights: { sector: string; weight: number }[];
+    top_holdings: { symbol: string; name: string | null; weight: number }[];
+  };
+}
+
+// ---- Mercado argentino ----
+export interface DollarRate {
+  name: string;
+  buy: number | null;
+  sell: number | null;
+}
+export interface ArgentinaMarket {
+  dollars: DollarRate[];
+  merval: Quote | null;
+  source: string;
+  note: string | null;
+}

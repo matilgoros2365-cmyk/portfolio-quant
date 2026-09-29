@@ -5,6 +5,7 @@ from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
     analyses,
+    argentina,
     factors,
     market_data,
     optimize,
@@ -17,6 +18,7 @@ from app.api.v1.endpoints import (
 
 api_router = APIRouter()
 api_router.include_router(market_data.router, tags=["market-data"])
+api_router.include_router(argentina.router, tags=["market-data"])
 api_router.include_router(portfolio.router, tags=["portfolio"])
 api_router.include_router(optimize.router, tags=["portfolio"])
 api_router.include_router(risk.router, tags=["portfolio"])

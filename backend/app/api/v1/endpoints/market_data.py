@@ -6,7 +6,9 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.schemas.analysis import AssetMetrics
+from app.schemas.market_detail import AssetDetail, Composition, Quote
 from app.services.analysis import PortfolioAnalyzer
+from app.services.market_data.yahoo import YahooFinanceProvider
 
 router = APIRouter()
 
@@ -26,3 +28,16 @@ def get_market_data(
             detail=f"No se encontraron datos para el símbolo '{symbol}'.",
         )
     return metrics
+
+
+@router.get("/market-data/{symbol}/detail", response_model=AssetDetail)
+def get_asset_detail(symbol: str) -> AssetDetail:
+    """Precio actual (diferido) + qué hay adentro del activo (rubro, sectores, empresas)."""
+    provider = YahooFinanceProvider()
+    quote = provider.get_quote(symbol)
+    composition = provider.get_composition(symbol)
+    return AssetDetail(
+        symbol=symbol.upper(),
+        quote=Quote(**quote),
+        composition=Composition(**composition),
+    )

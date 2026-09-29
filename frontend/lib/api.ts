@@ -2,7 +2,9 @@ import type {
   AnalysisDetail,
   AnalysisSummary,
   AppUser,
+  ArgentinaMarket,
   AssessmentResult,
+  AssetDetail,
   FactorResponse,
   FormInputs,
   OptimizeResponse,
@@ -102,4 +104,12 @@ export async function getCurrentAssessment(userId: string): Promise<AssessmentRe
 
 export function getRecommendation(userId: string) {
   return get<Recommendation>(`/users/${userId}/recommendation`);
+}
+
+export function getAssetDetail(symbol: string) {
+  return get<AssetDetail>(`/market-data/${symbol}/detail`);
+}
+
+export function getArgentinaMarket() {
+  return get<ArgentinaMarket>("/market/argentina");
 }
