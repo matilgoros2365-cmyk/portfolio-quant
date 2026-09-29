@@ -20,7 +20,7 @@ import ResultScreen from "@/components/ResultScreen";
 import AdvancedDashboard from "@/components/AdvancedDashboard";
 import PaperScreen from "@/components/PaperScreen";
 
-type View = "profiles" | "questionnaire" | "result" | "advanced" | "practica";
+type View = "profiles" | "home" | "questionnaire" | "result" | "advanced" | "practica";
 
 export default function Home() {
   const [view, setView] = useState<View>("profiles");
@@ -57,14 +57,12 @@ export default function Home() {
     setError(null);
     setBusy(true);
     setUser(u);
+    setRecommendation(null);
     try {
       const current = await getCurrentAssessment(u.id);
-      if (current) {
-        await loadRecommendation(u, current);
-      } else {
-        setView("questionnaire");
-        setBusy(false);
-      }
+      setAssessment(current);
+      setView("home");
+      setBusy(false);
     } catch (e) {
       fail(e);
     }
@@ -77,8 +75,24 @@ export default function Home() {
       const u = await createUser(name);
       setUsers((prev) => [...prev, u]);
       setUser(u);
-      setView("questionnaire");
+      setAssessment(null);
+      setRecommendation(null);
+      setView("home");
       setBusy(false);
+    } catch (e) {
+      fail(e);
+    }
+  }
+
+  async function showRecommendation() {
+    if (!user) return;
+    if (!assessment) {
+      setView("questionnaire");
+      return;
+    }
+    setBusy(true);
+    try {
+      await loadRecommendation(user, assessment);
     } catch (e) {
       fail(e);
     }
@@ -143,6 +157,35 @@ export default function Home() {
           {view === "profiles" && (
             <ProfileSelector users={users} onSelect={handleSelect} onCreate={handleCreate} busy={busy} />
           )}
+          {view === "home" && user && (
+            <div className="container" style={{ maxWidth: 720 }}>
+              <div className="rs-head">
+                <h1>Hola, {user.name}</h1>
+                <button className="linkbtn" onClick={resetToProfiles}>Cambiar de perfil</button>
+              </div>
+              <div className="home-grid">
+                <button className="home-card" onClick={showRecommendation}>
+                  <div className="home-t">Ver mi propuesta de cartera</div>
+                  <div className="home-d">
+                    {assessment
+                      ? "Tu recomendación personalizada, con análisis y proyección."
+                      : "Respondé unas preguntas y te armamos una cartera a medida."}
+                  </div>
+                </button>
+                <button className="home-card" onClick={() => setView("practica")}>
+                  <div className="home-t">Jugar (modo práctica)</div>
+                  <div className="home-d">
+                    Invertí con $100.000 de plata ficticia y precios reales. Sin riesgo.
+                  </div>
+                </button>
+              </div>
+              {assessment ? (
+                <div style={{ textAlign: "center", marginTop: 16 }}>
+                  <button className="linkbtn" onClick={() => setView("questionnaire")}>¿Cambió tu situación? Rehacer cuestionario</button>
+                </div>
+              ) : null}
+            </div>
+          )}
           {view === "questionnaire" && user && (
             <Questionnaire
               userName={user.name}
@@ -170,7 +213,7 @@ export default function Home() {
               userId={user.id}
               userName={user.name}
               recommended={recommendation?.optimization.recommended.weights}
-              onBack={() => setView(recommendation ? "result" : "profiles")}
+              onBack={() => setView("home")}
             />
           )}
         </>

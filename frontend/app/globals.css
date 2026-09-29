@@ -290,6 +290,18 @@ code {
   color: #fff; vertical-align: middle;
 }
 
+/* ---- Home por perfil ---- */
+.home-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+@media (max-width: 640px) { .home-grid { grid-template-columns: 1fr; } }
+.home-card {
+  text-align: left; cursor: pointer; background: var(--card);
+  border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 24px; transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
+}
+.home-card:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: 0 8px 24px rgba(79,70,229,0.15); }
+.home-t { font-size: 18px; font-weight: 700; margin-bottom: 6px; color: var(--ink); }
+.home-d { font-size: 14px; color: var(--muted); line-height: 1.5; }
+
 /* ---- Modo práctica ---- */
 .search-results { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; max-height: 260px; overflow-y: auto; }
 .search-results .q-option { padding: 10px 12px; font-size: 14px; }
