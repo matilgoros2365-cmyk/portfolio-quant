@@ -357,6 +357,11 @@ export interface SearchResult {
   type: string;
   exchange: string | null;
 }
+export interface PaperHistory {
+  initial_cash: number;
+  base_currency: string;
+  points: { date: string; value: number }[];
+}
 export interface MarketCatalog {
   categorias: Record<string, { symbol: string; name: string }[]>;
   carteras: { id: string; name: string; tickers: string[]; description: string }[];

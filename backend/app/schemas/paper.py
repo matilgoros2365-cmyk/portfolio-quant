@@ -57,3 +57,14 @@ class PaperSnapshot(BaseModel):
     total_return: float      # total_value / initial_cash - 1
     positions: list[PositionOut]
     transactions: list[TransactionOut]
+
+
+class HistoryPoint(BaseModel):
+    date: str
+    value: float
+
+
+class PaperHistory(BaseModel):
+    initial_cash: float
+    base_currency: str
+    points: list[HistoryPoint]

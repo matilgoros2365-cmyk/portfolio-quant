@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   getCatalog,
   getPaper,
+  getPaperHistory,
   paperBuy,
   paperBuyPortfolio,
   paperReset,
@@ -12,11 +13,13 @@ import {
 } from "@/lib/api";
 import type {
   MarketCatalog,
+  PaperHistory,
   PaperSnapshot,
   ProposedWeight,
   SearchResult,
 } from "@/lib/types";
 import { fmtCurrency, fmtPct } from "@/lib/format";
+import PaperHistoryChart from "@/components/PaperHistoryChart";
 
 export default function PaperScreen({
   userId,
@@ -30,6 +33,7 @@ export default function PaperScreen({
   onBack: () => void;
 }) {
   const [snap, setSnap] = useState<PaperSnapshot | null>(null);
+  const [history, setHistory] = useState<PaperHistory | null>(null);
   const [catalog, setCatalog] = useState<MarketCatalog | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -56,6 +60,7 @@ export default function PaperScreen({
         setError(String(e.message ?? e));
         setLoading(false);
       });
+    getPaperHistory(userId).then(setHistory).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -82,6 +87,7 @@ export default function PaperScreen({
       const s = await fn();
       setSnap(s);
       setNotice(msg);
+      getPaperHistory(userId).then(setHistory).catch(() => {});
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error");
     } finally {
@@ -145,6 +151,17 @@ export default function PaperScreen({
         {notice ? <div className="rs-lever" style={{ background: "#ecfdf5", borderColor: "#6ee7b7", color: "#065f46", marginTop: 14, marginBottom: 0 }}>{notice}</div> : null}
         {error ? <div className="alert" style={{ marginTop: 14 }}>{error}</div> : null}
       </div>
+
+      {/* Evolución */}
+      {history ? (
+        <div className="card">
+          <h2>Evolución de tu inversión</h2>
+          <p className="sub" style={{ marginBottom: 12 }}>
+            Cómo se mueve el valor total de tu cartera de práctica en el tiempo.
+          </p>
+          <PaperHistoryChart history={history} />
+        </div>
+      ) : null}
 
       {/* Tenencias */}
       <div className="card">

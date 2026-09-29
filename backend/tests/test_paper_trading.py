@@ -101,3 +101,61 @@ def test_reset() -> None:
     snap = svc.snapshot(uid)
     assert snap.cash == 100_000.0
     assert snap.positions == []
+
+
+def test_value_history_empty_without_trades() -> None:
+    svc, uid, _ = _setup()
+    h = svc.value_history(uid)
+    assert h.initial_cash == 100_000.0
+    assert h.points == []
+
+
+def test_value_history_reconstructs_curve() -> None:
+    # Motor con histórico falso para reconstruir la curva sin red.
+    from datetime import date, timedelta
+
+    import pandas as pd
+    from sqlalchemy import create_engine as _ce
+    from sqlalchemy.orm import Session as _S
+
+    from app.core.database import Base
+    from app.models.asset import AssetType
+    from app.services.market_data.base import PRICE_COLUMNS, AssetMetadata, PriceProvider
+    from app.services.market_data.engine import MarketDataEngine
+    from app.services.profile_service import ProfileService
+
+    N = 20
+    dates = [date.today() - timedelta(days=N - 1 - i) for i in range(N)]
+
+    class HistProvider(PriceProvider):
+        name = "hist"
+
+        def get_historical_prices(self, symbol, start=None, end=None):
+            base = 100.0 if symbol.upper() == "AAA" else 50.0
+            prices = [base * (1 + 0.01 * i) for i in range(N)]  # sube 1% por día
+            df = pd.DataFrame(
+                {c: prices for c in ("open", "high", "low", "close", "adj_close")}
+                | {"volume": [1] * N}, index=dates,
+            )[PRICE_COLUMNS]
+            if start is not None:
+                df = df[[d >= start for d in df.index]]
+            return df
+
+        def get_asset_metadata(self, symbol):
+            return AssetMetadata(symbol=symbol.upper(), name=symbol, asset_type=AssetType.ETF)
+
+        def get_quote(self, symbol):
+            return {"price": (100.0 if symbol.upper() == "AAA" else 50.0)}
+
+    eng2 = _ce("sqlite://", connect_args={"check_same_thread": False})
+    Base.metadata.create_all(bind=eng2)
+    db = _S(bind=eng2)
+    user = ProfileService(db).create_user("Hist")
+    mde = MarketDataEngine(db, price_provider=HistProvider())
+    svc = PaperTradingService(db, provider=HistProvider())
+    svc.buy(user.id, "AAA", 1000)  # 10 unidades a 100
+    h = svc.value_history(user.id, engine=mde)
+    # Comprando "hoy", la curva arranca hoy (1 punto); crece a medida que pasan días.
+    assert len(h.points) >= 1
+    # Valor reconstruido correcto: 99.000 efectivo + 10 unidades al precio actual (~119).
+    assert h.points[-1].value == pytest.approx(100_190.0, abs=1.0)

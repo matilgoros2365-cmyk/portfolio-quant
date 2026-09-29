@@ -8,6 +8,7 @@ from app.core.database import get_db
 from app.schemas.paper import (
     BuyPortfolioRequest,
     BuyRequest,
+    PaperHistory,
     PaperSnapshot,
     SellRequest,
 )
@@ -26,6 +27,12 @@ def _require_user(db: Session, user_id: str) -> None:
 def get_paper(user_id: str, db: Session = Depends(get_db)) -> PaperSnapshot:
     _require_user(db, user_id)
     return PaperTradingService(db).snapshot(user_id)
+
+
+@router.get("/users/{user_id}/paper/history", response_model=PaperHistory)
+def get_paper_history(user_id: str, db: Session = Depends(get_db)) -> PaperHistory:
+    _require_user(db, user_id)
+    return PaperTradingService(db).value_history(user_id)
 
 
 @router.post("/users/{user_id}/paper/buy", response_model=PaperSnapshot)

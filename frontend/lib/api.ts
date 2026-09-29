@@ -9,6 +9,7 @@ import type {
   FormInputs,
   MarketCatalog,
   OptimizeResponse,
+  PaperHistory,
   PaperSnapshot,
   Recommendation,
   RiskResponse,
@@ -120,6 +121,9 @@ export function getArgentinaMarket() {
 // ---- Modo práctica (paper trading) ----
 export function getPaper(userId: string) {
   return get<PaperSnapshot>(`/users/${userId}/paper`);
+}
+export function getPaperHistory(userId: string) {
+  return get<PaperHistory>(`/users/${userId}/paper/history`);
 }
 export function paperBuy(userId: string, symbol: string, amount: number) {
   return post<PaperSnapshot>(`/users/${userId}/paper/buy`, { symbol, amount });

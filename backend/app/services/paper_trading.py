@@ -1,6 +1,9 @@
 """PaperTradingService: modo práctica con plata ficticia y precios diferidos."""
 from __future__ import annotations
 
+from datetime import date, timedelta
+
+import pandas as pd
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
@@ -11,10 +14,13 @@ from app.models.paper import (
     PaperTransaction,
 )
 from app.schemas.paper import (
+    HistoryPoint,
+    PaperHistory,
     PaperSnapshot,
     PositionOut,
     TransactionOut,
 )
+from app.services.market_data.engine import MarketDataEngine
 from app.services.market_data.yahoo import YahooFinanceProvider
 
 _EPS = 1e-6
@@ -187,4 +193,61 @@ class PaperTradingService:
             invested=round(invested, 2), positions_value=round(positions_value, 2),
             total_value=round(total_value, 2), total_return=round(total_return, 4),
             positions=pos_out, transactions=tx_out,
+        )
+
+    # ------------------------------------------------------------ evolución
+    def value_history(self, user_id: str, max_points: int = 180, engine=None) -> PaperHistory:
+        """Reconstruye el valor de la cartera de práctica día a día (desde el histórico)."""
+        acc = self.get_or_create_account(user_id)
+        txns = self.db.scalars(
+            select(PaperTransaction)
+            .where(PaperTransaction.account_id == acc.id)
+            .order_by(PaperTransaction.created_at)
+        ).all()
+        if not txns:
+            return PaperHistory(initial_cash=acc.initial_cash, base_currency=acc.base_currency, points=[])
+
+        symbols = sorted({t.symbol for t in txns})
+        engine = engine or MarketDataEngine(self.db)
+        series: dict[str, pd.Series] = {}
+        for s in symbols:
+            engine.sync_prices(s)
+            df = engine.get_price_dataframe(s)
+            if not df.empty:
+                series[s] = df["adj_close"]
+        if not series:
+            return PaperHistory(initial_cash=acc.initial_cash, base_currency=acc.base_currency, points=[])
+
+        start = min(t.created_at.date() for t in txns)
+        days = pd.date_range(start=start, end=date.today(), freq="D")
+        if len(days) == 0:
+            days = pd.DatetimeIndex([pd.Timestamp(date.today())])
+
+        price_df = pd.DataFrame({s: v for s, v in series.items()})
+        price_df.index = pd.DatetimeIndex(price_df.index)
+        price_df = price_df.reindex(price_df.index.union(days)).sort_index().ffill().reindex(days).ffill().bfill()
+
+        qty_delta = {s: pd.Series(0.0, index=days) for s in symbols}
+        cash_delta = pd.Series(0.0, index=days)
+        for t in txns:
+            ts = pd.Timestamp(t.created_at.date())
+            if ts < days[0]:
+                ts = days[0]
+            qty_delta[t.symbol].loc[ts] += t.quantity if t.side == "buy" else -t.quantity
+            cash_delta.loc[ts] += t.amount if t.side == "sell" else -t.amount
+
+        value = acc.initial_cash + cash_delta.cumsum()
+        for s in symbols:
+            if s in price_df.columns:
+                value = value + qty_delta[s].cumsum() * price_df[s].fillna(0.0)
+
+        pts = [(d.date().isoformat(), float(v)) for d, v in value.items() if pd.notna(v)]
+        # Downsample si hay muchos puntos (dejando siempre el último).
+        if len(pts) > max_points:
+            step = len(pts) // max_points + 1
+            pts = pts[::step] + [pts[-1]]
+        return PaperHistory(
+            initial_cash=acc.initial_cash,
+            base_currency=acc.base_currency,
+            points=[HistoryPoint(date=d, value=round(v, 2)) for d, v in pts],
         )
