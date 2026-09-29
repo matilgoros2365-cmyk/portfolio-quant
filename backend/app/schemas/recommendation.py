@@ -39,6 +39,7 @@ class GoalReconciliation(BaseModel):
 
 class RecommendationResponse(BaseModel):
     resolved_inputs: dict[str, Any]
+    advisor: str = "curated"               # "ai" | "curated"
     primary_model: ModelInfo               # qué modelo se eligió y por qué
     optimization: OptimizationResponse     # cartera recomendada + frontera
     simulation: SimulationResponse         # proyección + probabilidad del objetivo

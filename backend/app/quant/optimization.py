@@ -52,9 +52,17 @@ def portfolio_stats(
 
 
 # --------------------------------------------------------- carteras óptimas
+def _feasible_max_weight(max_weight: float | None, n: int) -> float | None:
+    """Relaja el tope por activo si es infactible (debe ser >= 1/n para sumar 1)."""
+    if max_weight is None:
+        return None
+    return max(max_weight, 1.0 / n)
+
+
 def min_variance_weights(cov: np.ndarray, max_weight: float | None = None) -> np.ndarray:
     """Cartera de mínima varianza."""
     n = cov.shape[0]
+    max_weight = _feasible_max_weight(max_weight, n)
     w = cp.Variable(n)
     constraints = [cp.sum(w) == 1, w >= 0]
     if max_weight is not None:
@@ -77,11 +85,12 @@ def max_sharpe_weights(
     riesgo, cae a mínima varianza.
     """
     mu = np.asarray(mu, dtype=float)
+    n = len(mu)
+    max_weight = _feasible_max_weight(max_weight, n)
     excess = mu - risk_free_rate
     if np.all(excess <= 0):
         return min_variance_weights(cov, max_weight)
 
-    n = len(mu)
     y = cp.Variable(n)
     kappa = cp.Variable(nonneg=True)
     constraints = [excess @ y == 1, cp.sum(y) == kappa, y >= 0]
@@ -114,6 +123,7 @@ def risk_parity_weights(cov: np.ndarray) -> np.ndarray:
 def max_return_weights(mu: np.ndarray, max_weight: float | None = None) -> np.ndarray:
     """Cartera de máximo retorno esperado (extremo agresivo de la frontera)."""
     n = len(mu)
+    max_weight = _feasible_max_weight(max_weight, n)
     w = cp.Variable(n)
     constraints = [cp.sum(w) == 1, w >= 0]
     if max_weight is not None:
@@ -131,6 +141,7 @@ def min_variance_for_target(
 ) -> np.ndarray | None:
     """Mínima varianza sujeta a un retorno esperado >= target."""
     n = len(mu)
+    max_weight = _feasible_max_weight(max_weight, n)
     w = cp.Variable(n)
     constraints = [cp.sum(w) == 1, w >= 0, np.asarray(mu, float) @ w >= target_return]
     if max_weight is not None:

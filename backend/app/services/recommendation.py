@@ -1,7 +1,8 @@
-"""RecommendationService: del perfil a la cartera, con alternativas y reconciliación.
+"""RecommendationService: del perfil a la cartera.
 
-- Elige un modelo de cartera primario según el perfil (no siempre el mismo).
-- Ofrece otros modelos como alternativas, con su lógica y riesgos.
+- Un asesor de IA (OpenRouter) propone universos a medida del perfil; si no hay
+  key o falla, se usa el fallback: los modelos de cartera curados.
+- El motor cuantitativo optimiza y simula cada propuesta con datos reales.
 - Si la meta es poco probable, calcula palancas concretas (Fase 5).
 """
 from __future__ import annotations
@@ -11,28 +12,66 @@ from sqlalchemy.orm import Session
 from app.models.assessment import Assessment
 from app.profiling.model_portfolios import (
     available_models,
-    model_tickers,
     select_primary,
 )
+from app.profiling.universe import filter_tickers
 from app.quant.reconciliation import reconcile
 from app.schemas.recommendation import (
     GoalReconciliation,
     ModelInfo,
     ModelPortfolio,
 )
+from app.services.ai_advisor import ALLOWLIST, Candidate, build_advisor
 from app.services.audit import save_analysis
 from app.services.market_data.engine import MarketDataEngine
 from app.services.optimizer import InsufficientDataError, PortfolioOptimizer
 from app.services.simulation import SimulationService
 
+_AUTO = object()
+
 
 class RecommendationService:
-    def __init__(self, db: Session, engine: MarketDataEngine | None = None) -> None:
+    def __init__(
+        self, db: Session, engine: MarketDataEngine | None = None, advisor=_AUTO
+    ) -> None:
         self.db = db
         self.mde = engine or MarketDataEngine(db)
         self.optimizer = PortfolioOptimizer(db, engine=self.mde)
         self.simulator = SimulationService(db, engine=self.mde)
+        self.advisor = build_advisor() if advisor is _AUTO else advisor
 
+    # ------------------------------------------------------------ candidatos
+    def _curated_candidates(self, d: dict) -> list[Candidate]:
+        primary = select_primary(d.get("goal_type"), d.get("risk_label"))
+        exclusions = d.get("exclusions", [])
+        models = [primary] + [
+            m for m in available_models(exclusions) if m.id != primary.id
+        ]
+        return [
+            Candidate(m.id, m.name, m.tickers, m.description, m.rationale, m.risks)
+            for m in models
+        ]
+
+    def _candidates(self, d: dict) -> tuple[list[Candidate], str]:
+        """Devuelve (candidatos, fuente): IA si se pudo, si no curados."""
+        if self.advisor is not None:
+            context = {
+                "goal_type": d.get("goal_type"),
+                "horizon_years": d.get("investment_horizon_years"),
+                "risk_label": d.get("risk_label"),
+                "short_horizon": (d.get("investment_horizon_years") or 10) <= 3,
+                "currency": d.get("currency", "USD"),
+                "exclusions": d.get("exclusions", []),
+            }
+            try:
+                cands = self.advisor.suggest(context, ALLOWLIST)
+            except Exception:  # noqa: BLE001
+                cands = None
+            if cands:
+                return cands, "ai"
+        return self._curated_candidates(d), "curated"
+
+    # ------------------------------------------------------------ recomendar
     def recommend(
         self, user_id: str, assessment: Assessment, n_simulations: int = 50_000
     ) -> dict:
@@ -42,10 +81,47 @@ class RecommendationService:
         max_weight = d.get("max_weight")
         currency = d.get("currency", "USD")
 
-        primary = select_primary(d.get("goal_type"), d.get("risk_label"))
-        symbols = model_tickers(primary, exclusions)
-        if len(symbols) < 2:
-            symbols = ["VT", "BND", "GLD"]
+        candidates, source = self._candidates(d)
+
+        # Elegir el primer candidato que optimice bien -> primario; el resto -> alternativas.
+        primary_c: Candidate | None = None
+        primary_opt = None
+        alternatives: list[ModelPortfolio] = []
+        for c in candidates:
+            tk = filter_tickers([t for t in c.tickers if t in ALLOWLIST], exclusions) \
+                if source == "ai" else filter_tickers(c.tickers, exclusions)
+            if len(tk) < 2:
+                continue
+            try:
+                opt = self.optimizer.optimize(
+                    tk, risk_level=risk_level, base_currency=currency, max_weight=max_weight
+                )
+            except InsufficientDataError:
+                continue
+            if primary_c is None:
+                primary_c, primary_opt, primary_tk = c, opt, tk
+            else:
+                r = opt.recommended
+                alternatives.append(ModelPortfolio(
+                    id=c.id, name=c.name, description=c.description,
+                    rationale=c.rationale, risks=c.risks,
+                    expected_return=r.expected_return, volatility=r.volatility,
+                    sharpe_ratio=r.sharpe_ratio, weights=r.weights,
+                ))
+
+        # Fallback último: cartera global diversificada.
+        if primary_c is None:
+            primary_tk = ["VT", "BND", "GLD"]
+            primary_opt = self.optimizer.optimize(
+                primary_tk, risk_level=risk_level, base_currency=currency, max_weight=max_weight
+            )
+            primary_c = Candidate(
+                "global_div", "Global diversificada", primary_tk,
+                "Acciones del mundo, bonos y oro.",
+                "La más diversificada y simple.",
+                "Crece más lento que una apuesta concentrada; igual cae en crisis globales.",
+            )
+            source = "curated"
 
         monthly = d.get("monthly_contribution_effective")
         if monthly is None:
@@ -55,7 +131,7 @@ class RecommendationService:
         target = d.get("target_wealth")
 
         inp = {
-            "symbols": symbols,
+            "symbols": primary_tk,
             "risk_level": risk_level,
             "risk_label": d.get("risk_label"),
             "max_weight": max_weight,
@@ -65,20 +141,18 @@ class RecommendationService:
             "investment_horizon_years": years,
             "target_wealth": target,
             "goal_alarm_prob": d.get("goal_alarm_prob"),
-            "primary_model": primary.id,
+            "primary_model": primary_c.id,
+            "advisor": source,
         }
 
-        opt = self.optimizer.optimize(
-            symbols, risk_level=risk_level, base_currency=currency, max_weight=max_weight
-        )
-        opt.analysis_id = save_analysis(
-            self.db, "optimize", inp, opt.model_dump(mode="json"),
-            risk_profile=opt.risk_profile.value, base_currency=currency,
-            label=opt.recommended.label, user_id=user_id,
+        primary_opt.analysis_id = save_analysis(
+            self.db, "optimize", inp, primary_opt.model_dump(mode="json"),
+            risk_profile=primary_opt.risk_profile.value, base_currency=currency,
+            label=primary_opt.recommended.label, user_id=user_id,
         )
 
         sim = self.simulator.simulate(
-            symbols, risk_level=risk_level, initial_capital=initial,
+            primary_tk, risk_level=risk_level, initial_capital=initial,
             monthly_contribution=monthly, years=years, target_wealth=target,
             n_simulations=n_simulations, base_currency=currency, max_weight=max_weight,
             seed=42,
@@ -87,28 +161,6 @@ class RecommendationService:
             self.db, "simulate", inp, sim.model_dump(mode="json"),
             risk_profile=sim.risk_profile.value, base_currency=currency, user_id=user_id,
         )
-
-        # --- Alternativas: otros modelos de cartera ---
-        alternatives: list[ModelPortfolio] = []
-        for m in available_models(exclusions):
-            if m.id == primary.id:
-                continue
-            tk = model_tickers(m, exclusions)
-            if len(tk) < 2:
-                continue
-            try:
-                alt = self.optimizer.optimize(
-                    tk, risk_level=risk_level, base_currency=currency, max_weight=max_weight
-                )
-            except InsufficientDataError:
-                continue
-            r = alt.recommended
-            alternatives.append(ModelPortfolio(
-                id=m.id, name=m.name, description=m.description,
-                rationale=m.rationale, risks=m.risks,
-                expected_return=r.expected_return, volatility=r.volatility,
-                sharpe_ratio=r.sharpe_ratio, weights=r.weights,
-            ))
 
         # --- Reconciliación del objetivo (Fase 5) ---
         reconciliation = None
@@ -128,11 +180,12 @@ class RecommendationService:
 
         return {
             "resolved_inputs": inp,
+            "advisor": source,
             "primary_model": ModelInfo(
-                id=primary.id, name=primary.name, description=primary.description,
-                rationale=primary.rationale, risks=primary.risks,
+                id=primary_c.id, name=primary_c.name, description=primary_c.description,
+                rationale=primary_c.rationale, risks=primary_c.risks,
             ),
-            "optimization": opt,
+            "optimization": primary_opt,
             "simulation": sim,
             "alternatives": alternatives,
             "goal_reconciliation": reconciliation,

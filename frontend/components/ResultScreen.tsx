@@ -94,6 +94,7 @@ export default function ResultScreen({
         </p>
         <p className="rs-summary" style={{ marginTop: 10 }}>
           Para vos elegimos la cartera <strong>«{recommendation.primary_model.name}»</strong>: {recommendation.primary_model.rationale}
+          {recommendation.advisor === "ai" ? <span className="ai-badge">pensada con IA</span> : null}
         </p>
       </div>
 

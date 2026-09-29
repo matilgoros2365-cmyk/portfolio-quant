@@ -37,5 +37,10 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3000",
     ]
 
+    # --- Asesor IA (opcional; OpenRouter, gratis). Sin key -> modelos curados. ---
+    # Key gratuita en: https://openrouter.ai/settings/keys
+    openrouter_api_key: str | None = None
+    openrouter_model: str = "openrouter/free"
+
 
 settings = Settings()

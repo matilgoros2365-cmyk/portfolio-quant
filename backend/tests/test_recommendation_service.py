@@ -18,8 +18,21 @@ from app.services.market_data.base import (
     PriceProvider,
 )
 from app.services.market_data.engine import MarketDataEngine
+from app.services.ai_advisor.base import AIAdvisor, Candidate
 from app.services.profile_service import ProfileService
 from app.services.recommendation import RecommendationService
+
+
+class FakeAdvisor(AIAdvisor):
+    """Asesor de IA falso: devuelve candidatos fijos (sin red)."""
+
+    def suggest(self, context, allowlist):
+        return [
+            Candidate("ai_1", "IA Crecimiento", ["QQQ", "VOO"],
+                      "A medida (IA)", "Potencial", "Volátil"),
+            Candidate("ai_2", "IA Estable", ["BND", "VT", "GLD"],
+                      "A medida (IA)", "Tranquila", "Crece menos"),
+        ]
 
 _N = 400
 _DATES = [date(2023, 1, 1) + timedelta(days=i) for i in range(_N)]
@@ -90,11 +103,13 @@ def test_recommend_from_profile(db: Session) -> None:
 
     mde = MarketDataEngine(db, price_provider=FakePriceProvider(),
                            macro_provider=FakeMacroProvider())
-    result = RecommendationService(db, engine=mde).recommend(
+    # Sin advisor (None) -> camino curado.
+    result = RecommendationService(db, engine=mde, advisor=None).recommend(
         user.id, assessment, n_simulations=2000
     )
 
     inp = result["resolved_inputs"]
+    assert result["advisor"] == "curated"
     # Perfil agresivo con objetivo "grow" -> modelo de crecimiento (no siempre el mismo).
     assert result["primary_model"].id == "growth_tech"
     assert inp["symbols"] == ["QQQ", "VOO", "GLD"]
@@ -120,3 +135,23 @@ def test_recommend_from_profile(db: Session) -> None:
     from sqlalchemy import select
     runs = db.scalars(select(AnalysisRun).where(AnalysisRun.user_id == user.id)).all()
     assert len(runs) == 2
+
+
+def test_recommend_uses_ai_advisor_when_available(db: Session) -> None:
+    svc = ProfileService(db)
+    user = svc.create_user("IAuser")
+    assessment = svc.create_assessment(user.id, {
+        "Q3": "gt_10", "Q4": "other_savings", "Q5": "several_months",
+        "Q9": "hold", "Q10": "at_20", "currency": "USD",
+        "initial_capital": 50000, "monthly_contribution": 1000, "Q1": "grow",
+    })
+    mde = MarketDataEngine(db, price_provider=FakePriceProvider(),
+                           macro_provider=FakeMacroProvider())
+    result = RecommendationService(db, engine=mde, advisor=FakeAdvisor()).recommend(
+        user.id, assessment, n_simulations=1000
+    )
+    assert result["advisor"] == "ai"
+    # El primario sale de la IA (primer candidato: QQQ/VOO).
+    assert result["primary_model"].id == "ai_1"
+    assert result["resolved_inputs"]["symbols"] == ["QQQ", "VOO"]
+    assert len(result["alternatives"]) >= 1

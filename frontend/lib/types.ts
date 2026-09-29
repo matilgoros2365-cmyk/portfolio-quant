@@ -290,6 +290,7 @@ export interface GoalReconciliation {
 
 export interface Recommendation {
   resolved_inputs: Record<string, any>;
+  advisor: string; // "ai" | "curated"
   primary_model: ModelInfo;
   optimization: OptimizeResponse;
   simulation: SimulateResponse;
